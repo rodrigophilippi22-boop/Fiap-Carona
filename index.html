@@ -1,0 +1,258 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIAP Carona</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f5f9;color:#19192d}
+header{background:#17172b;color:white;padding:25px 7%;border-bottom:5px solid #ed145b}
+header h1{margin:0;font-size:30px}
+header span{color:#ed145b}
+header p{color:#ddd}
+main{max-width:1100px;margin:30px auto;padding:0 20px}
+.welcome{margin-bottom:25px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px}
+.stat,.card{background:white;padding:20px;border-radius:12px;border:1px solid #e5e5ee}
+.stat strong{display:block;font-size:27px;color:#ed145b}
+.stat span{font-size:13px;color:#666}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+.card h3{margin-top:0}
+label{display:block;font-size:13px;font-weight:bold;margin-top:14px;margin-bottom:6px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d8d8e4;border-radius:8px;font-size:14px;background:white}
+button{border:0;border-radius:8px;padding:12px 15px;font-size:14px;font-weight:bold;cursor:pointer}
+.primary{background:#ed145b;color:white}
+.secondary{background:#fce5ed;color:#bd1048}
+.delete{background:#fff0f0;color:#b42318}
+.submit{width:100%;margin-top:20px}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.ride{border:1px solid #e5e5ee;border-radius:12px;padding:18px;margin-bottom:14px}
+.ride h4{font-size:18px;margin:0 0 12px}
+.arrow{color:#ed145b;padding:0 5px}
+.ride p{font-size:14px;color:#666;line-height:1.6;overflow-wrap:anywhere}
+.badge{display:inline-block;background:#e4f7ed;color:#16734d;padding:6px 9px;border-radius:20px;font-size:12px;font-weight:bold}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.empty{text-align:center;padding:30px 10px;color:#777;line-height:1.7}
+.notice{color:#777;font-size:12px;line-height:1.5;margin-top:18px}
+footer{text-align:center;color:#777;padding:25px;font-size:12px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.filters{grid-template-columns:1fr}}
+</style>
+</head>
+
+<body>
+<header>
+<h1>FIAP <span>CARONA</span></h1>
+<p>Compartilhe o caminho. Conecte pessoas.</p>
+</header>
+
+<main>
+<section class="welcome">
+<h2>Encontre sua próxima carona! 🚗</h2>
+<p>Conecte-se com outros estudantes e facilite seu trajeto até a faculdade.</p>
+</section>
+
+<section class="stats">
+<div class="stat"><strong id="total">0</strong><span>Caronas cadastradas</span></div>
+<div class="stat"><strong id="vagas">0</strong><span>Vagas disponíveis</span></div>
+<div class="stat"><strong id="motoristas">0</strong><span>Motoristas cadastrados</span></div>
+</section>
+
+<section class="layout">
+<div class="card">
+<h3>🚘 Oferecer carona</h3>
+<form id="form">
+<label>Nome do motorista</label>
+<input id="nome" maxlength="60" required placeholder="Seu nome">
+
+<label>Local de saída</label>
+<input id="origem" maxlength="80" required placeholder="Ex.: Metrô Tatuapé">
+
+<label>Destino</label>
+<input id="destino" maxlength="80" required placeholder="Ex.: FIAP Aclimação">
+
+<label>Data da viagem</label>
+<input id="data" type="date" required>
+
+<label>Horário</label>
+<input id="hora" type="time" required>
+
+<label>Vagas disponíveis</label>
+<select id="assentos">
+<option value="1">1 vaga</option>
+<option value="2">2 vagas</option>
+<option value="3">3 vagas</option>
+<option value="4">4 vagas</option>
+<option value="5">5 vagas</option>
+<option value="6">6 vagas</option>
+</select>
+
+<label>Contato</label>
+<input id="contato" maxlength="100" required placeholder="WhatsApp ou e-mail">
+
+<label>Observações</label>
+<textarea id="obs" maxlength="200" rows="2" placeholder="Ex.: ponto de encontro"></textarea>
+
+<button class="primary submit">Publicar carona</button>
+</form>
+<p class="notice">Confirme a identidade dos passageiros e combine os detalhes antes da viagem.</p>
+</div>
+
+<div class="card">
+<h3>📍 Caronas disponíveis</h3>
+
+<div class="filters">
+<div><label>Buscar por saída</label><input id="buscaOrigem" placeholder="Digite o local"></div>
+<div><label>Buscar por destino</label><input id="buscaDestino" placeholder="Digite o destino"></div>
+<div><label>Filtrar por data</label><input id="buscaData" type="date"></div>
+<div><label>Ordenar</label>
+<select id="ordenar"><option value="data">Data mais próxima</option><option value="vagas">Mais vagas</option></select>
+</div>
+</div>
+
+<button class="secondary" id="limpar">Limpar filtros</button>
+<div id="lista" style="margin-top:20px"></div>
+</div>
+</section>
+</main>
+
+<footer>FIAP Carona • Projeto acadêmico • 2026</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const CHAVE = "fiapCarona";
+let caronas = [];
+
+try {
+    caronas = JSON.parse(localStorage.getItem(CHAVE) || "[]");
+    if (!Array.isArray(caronas)) caronas = [];
+} catch {
+    caronas = [];
+}
+
+function hoje() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0,10);
+}
+
+$("data").min = hoje();
+$("buscaData").min = hoje();
+
+function escapar(valor) {
+    return String(valor ?? "").replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    })[c]);
+}
+
+function salvar() {
+    try {
+        localStorage.setItem(CHAVE, JSON.stringify(caronas));
+        mostrar();
+    } catch {
+        alert("Não foi possível salvar os dados.");
+    }
+}
+
+function mostrar() {
+    const origem = $("buscaOrigem").value.trim().toLowerCase();
+    const destino = $("buscaDestino").value.trim().toLowerCase();
+    const data = $("buscaData").value;
+
+    let lista = caronas.filter(c =>
+        c.origem.toLowerCase().includes(origem) &&
+        c.destino.toLowerCase().includes(destino) &&
+        (!data || c.data === data)
+    );
+
+    lista.sort((a,b) => $("ordenar").value === "vagas"
+        ? Number(b.vagas) - Number(a.vagas)
+        : (a.data+a.hora).localeCompare(b.data+b.hora));
+
+    $("total").textContent = caronas.length;
+    $("vagas").textContent = caronas.reduce((s,c)=>s+Number(c.vagas),0);
+    $("motoristas").textContent = new Set(caronas.map(c=>c.nome.toLowerCase())).size;
+
+    if (!lista.length) {
+        $("lista").innerHTML = '<div class="empty"><strong>Nenhuma carona encontrada.</strong><br>Cadastre uma carona ou altere os filtros.</div>';
+        return;
+    }
+
+    $("lista").innerHTML = lista.map(c => `
+        <article class="ride">
+            <h4>${escapar(c.origem)} <span class="arrow">→</span> ${escapar(c.destino)}</h4>
+            <span class="badge">${escapar(c.vagas)} vaga(s)</span>
+            <p>👤 Motorista: ${escapar(c.nome)}<br>
+            📅 Data: ${new Date(c.data+"T12:00:00").toLocaleDateString("pt-BR")}<br>
+            🕒 Horário: ${escapar(c.hora)}</p>
+            ${c.obs ? `<p>📝 ${escapar(c.obs)}</p>` : ""}
+            <div class="actions">
+                <button class="primary" data-contato="${escapar(c.id)}">Tenho interesse</button>
+                <button class="delete" data-excluir="${escapar(c.id)}">Excluir</button>
+            </div>
+        </article>
+    `).join("");
+}
+
+$("form").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const c = {
+        id: Date.now().toString(),
+        nome: $("nome").value.trim(),
+        origem: $("origem").value.trim(),
+        destino: $("destino").value.trim(),
+        data: $("data").value,
+        hora: $("hora").value,
+        vagas: $("assentos").value,
+        contato: $("contato").value.trim(),
+        obs: $("obs").value.trim()
+    };
+
+    if (c.data < hoje()) {
+        alert("Escolha hoje ou uma data futura.");
+        return;
+    }
+
+    caronas.unshift(c);
+    salvar();
+    this.reset();
+    $("data").min = hoje();
+    alert("Carona publicada com sucesso!");
+});
+
+$("lista").addEventListener("click", function(e) {
+    const contato = e.target.closest("[data-contato]");
+    const excluir = e.target.closest("[data-excluir]");
+
+    if (contato) {
+        const c = caronas.find(x => x.id === contato.dataset.contato);
+        if (c) alert("Motorista: " + c.nome + "\nContato: " + c.contato);
+    }
+
+    if (excluir) {
+        const c = caronas.find(x => x.id === excluir.dataset.excluir);
+        if (c && confirm("Deseja excluir esta carona?")) {
+            caronas = caronas.filter(x => x.id !== c.id);
+            salvar();
+        }
+    }
+});
+
+["buscaOrigem","buscaDestino","buscaData","ordenar"].forEach(id =>
+    $(id).addEventListener("input", mostrar)
+);
+
+$("limpar").addEventListener("click", () => {
+    $("buscaOrigem").value = "";
+    $("buscaDestino").value = "";
+    $("buscaData").value = "";
+    $("ordenar").value = "data";
+    mostrar();
+});
+
+mostrar();
+</script>
+</body
